@@ -1,15 +1,16 @@
 from datetime import date
 
 fileName = "inventory.txt"
-regularCustomer = True
+regularCustomer = False
 taxValue = 0.065
+
 
 class Item:
     def __init__(self, name, qnty, regularPrice, memberPrice, taxStatus):
         self.name = name
-        self.qnty = qnty
-        self.regularPrice = regularPrice
-        self.memberPrice = memberPrice
+        self.qnty = int(qnty)
+        self.regularPrice = float(regularPrice)
+        self.memberPrice = float(memberPrice)
         self.taxStatus = taxStatus
 
     def isItemTaxable(self):
@@ -19,15 +20,14 @@ class Item:
             return False
 
     def totalPriceRegular(self):
-        total = float(self.regularPrice) * float(self.qnty)
-        return str(total)
+        return self.regularPrice * self.qnty
 
     def totalPriceMember(self):
-        total = float(self.memberPrice) * float(self.qnty)
-        return str(total)
+        return self.memberPrice * self.qnty
 
     def __str__(self):
-        return self.name + ": " + self.qnty + ", " + self.regularPrice + ", " + self.memberPrice + ", " + self.taxStatus
+        return self.name + ": " + str(self.qnty) + ", $" + str(self.regularPrice) + ", $" + str(self.memberPrice) + ", " + self.taxStatus
+
 
 class Inventory:
     def __init__(self):
@@ -42,13 +42,16 @@ class Inventory:
             item = line.split(": ")
             name = item[0]
             itemInfo = item[1].split(", ")
-            self.items.append(Item(name, itemInfo[0], itemInfo[1], itemInfo[2], itemInfo[3]))
+            # print("regularPrice: " + str(itemInfo[1][1:]))
+            # print("memberPrice: " + str(itemInfo[2][1:]))
+            self.items.append(Item(name, itemInfo[0], itemInfo[1][1:], itemInfo[2][1:], itemInfo[3][:-1]))
 
     def updateInventory(self, item):
         if isinstance(item, Item):
             for i in self.items:
                 if item.name == i.name:
                     i.qnty = str(int(i.qnty) - int(item.qnty))
+
 
 class Cart:
     def __init__(self):
@@ -61,21 +64,20 @@ class Cart:
 
     def addItem(self, item):
         self.items.append(item)
-        self.itemNum += 1
+        self.itemNum += item.qnty
 
         if self.regularCustomer:
-            self.subtotal += float(item.regularPrice)
+            self.subtotal += item.regularPrice * item.qnty
 
             if item.taxStatus == "Taxable":
-                self.tax += float(item.regularPrice) * taxValue
+                self.tax += item.regularPrice * item.qnty * taxValue
         else:
-            self.subtotal += float(item.memberPrice)
+            self.subtotal += item.memberPrice * item.qnty
 
             if item.taxStatus == "Taxable":
-                self.tax += float(item.memberPrice) * taxValue
+                self.tax += item.memberPrice * item.qnty * taxValue
 
         self.total = self.subtotal + self.tax
-
 
     def removeItem(self, name):
         self.items = [item for item in self.items if not item.name == name]
@@ -91,13 +93,13 @@ class Cart:
     def viewCart(self):
         print("ITEM\tQUANTITY\tUNIT PRICE\tTOTAL")
         for item in self.items:
-            print(item.name + "\t" + item.qnty, end="\t")
+            print(item.name + "\t" + str(item.qnty), end="\t\t\t$")
             if self.regularCustomer:
-                print("entered")
-                print(item.regularPrice + "\t" + item.totalPriceRegular())
+                # print("entered")
+                print("{:.2f}".format(item.regularPrice) + "\t\t$" + "{:.2f}".format(item.totalPriceRegular()))
             else:
-                print("entered")
-                print(item.memberPrice + "\t" + item.totalPriceMember())
+                # print("entered")
+                print("{:.2f}".format(item.memberPrice) + "\t\t$" + "{:.2f}".format(item.totalPriceMember()))
 
 
 def main():
@@ -141,7 +143,7 @@ def main():
                 itemFound = False
                 for item in inventory.items:
                     if info[0] == item.name:
-                        if info[1] <= item.qnty:
+                        if int(info[1]) <= item.qnty:
                             cart.addItem(Item(item.name, info[1], item.regularPrice, item.memberPrice, item.taxStatus))
                             itemFound = True
                             break
@@ -168,22 +170,28 @@ def main():
                         print("Invalid option")
                 except ValueError:
                     print("Invalid option")
-
             elif option == 4:
                 cart.viewCart()
             elif option == 5:
+                print("Your total is $" + str(cart.total) + ", what is the cash amount?")
+                amount = float(input("Enter cash amount: "))
+                change = amount - cart.total
+
                 print(todayDate.isoformat())
                 print("Transaction: " + str(transactionNum))
                 cart.viewCart()
                 print("*******************************")
-                print("TOTAL NUMBER OF ITEMS SOLD: $" + str(cart.itemNum))
-                print("SUB-TOTAL: $" + str(cart.subtotal))
-                print("TAX (6.5%): $" + str(cart.tax))
-                print("TOTAL: $" + str(cart.total))
-                print("CASH: $")
-                print("CHANGE: $")
+                print("TOTAL NUMBER OF ITEMS SOLD: " + str(cart.itemNum))
+                print("SUB-TOTAL: $" + "{:.2f}".format(cart.subtotal))
+                print("TAX (6.5%): $" + "{:.2f}".format(cart.tax))
+                print("TOTAL: $" + "{:.2f}".format(cart.total))
+                print("CASH: $" + "{:.2f}".format(amount))
+                print("CHANGE: $" + "{:.2f}".format(change))
                 print("*******************************")
-                print("YOU SAVED: $" + "!")
+
+                if not regularCustomer:
+                    print("YOU SAVED: $" + "!")
+
                 for item in cart.items:
                     inventory.updateInventory(item)
 
@@ -199,6 +207,7 @@ def main():
             print("Invalid option")
 
     print("Come back again soon!")
+
 
 if __name__ == "__main__":
     main()
