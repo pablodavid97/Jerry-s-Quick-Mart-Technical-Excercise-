@@ -84,15 +84,37 @@ class Cart:
             self.memberTotal = self.memberSubtotal + self.memberTax
 
     def removeItem(self, name):
-        self.items = [item for item in self.items if not item.name == name]
-        self.itemNum -= 1
+        n = len(self.items)
+        item = None
+
+        for i in range(0, n):
+            if self.items[i].name == name:
+                item = self.items.pop(i)
+
+        if item != None:
+            # print("item " + str(item))
+            self.itemNum -= item.qnty
+            self.subtotal -= item.regularPrice * item.qnty
+            self.memberSubtotal -= item.memberPrice * item.qnty
+
+            if item.taxStatus == "Taxable":
+                self.tax -= item.regularPrice * item.qnty * taxValue
+                self.memberTax -= item.memberPrice * item.qnty * taxValue
+
+
+            self.total = self.subtotal + self.tax
+            self.memberTotal = self.memberSubtotal + self.memberTax
 
     def emptyCart(self):
         self.items.clear()
         self.itemNum = 0
-        self.tax = 0.0
         self.subtotal = 0.0
+        self.tax = 0.0
         self.total = 0.0
+        self.memberSubtotal = 0.0
+        self.memberTax = 0.0
+        self.memberTotal = 0.0
+
 
     def viewCart(self):
         print("ITEM\tQUANTITY\tUNIT PRICE\tTOTAL")
@@ -135,6 +157,7 @@ def main():
                         cart.regularCustomer = False
                         break
                     elif response == "n":
+                        cart.regularCustomer = True
                         break
             elif option == 2:
                 print("ADD ITEMS TO CART")
@@ -179,14 +202,14 @@ def main():
             elif option == 5:
 
                 print("Your total is $", end=" ")
-                if regularCustomer:
+                if cart.regularCustomer:
                     print("{:.2f}".format(cart.total), end=" ")
                 else:
                     print("{:.2f}".format(cart.memberTotal), end=" ")
                 print(", what is the cash amount?")
                 amount = float(input("Enter cash amount: "))
 
-                if regularCustomer:
+                if cart.regularCustomer:
                     change = amount - cart.total
                     print(todayDate.isoformat())
                     print("Transaction: " + str(transactionNum))
@@ -230,7 +253,7 @@ def main():
 
                 receipt = open(receiptFile, "w")
 
-                if regularCustomer:
+                if cart.regularCustomer:
                     change = amount - cart.total
                     receipt.write(todayDate.isoformat() + "\n")
                     receipt.write("Transaction: " + "{:06d}".format(transactionNum) + "\n")
