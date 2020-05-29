@@ -1,9 +1,8 @@
 from datetime import date
 
-fileName = "inventory.txt"
+inventoryFile = "inventory.txt"
 regularCustomer = False
 taxValue = 0.065
-
 
 class Item:
     def __init__(self, name, qnty, regularPrice, memberPrice, taxStatus):
@@ -35,16 +34,16 @@ class Inventory:
         self.loadInventory()
 
     def loadInventory(self):
-        file = open(fileName, "r")
+        file = open(inventoryFile, "r")
 
         for line in file:
-            print(line)
+            # print(line)
             item = line.split(": ")
             name = item[0]
             itemInfo = item[1].split(", ")
             # print("regularPrice: " + str(itemInfo[1][1:]))
             # print("memberPrice: " + str(itemInfo[2][1:]))
-            self.items.append(Item(name, itemInfo[0], itemInfo[1][1:], itemInfo[2][1:], itemInfo[3][:-1]))
+            self.items.append(Item(name, itemInfo[0], itemInfo[1][1:], itemInfo[2][1:], itemInfo[3].replace("\n", "")))
 
     def updateInventory(self, item):
         if isinstance(item, Item):
@@ -60,24 +59,29 @@ class Cart:
         self.subtotal = 0.0
         self.tax = 0.0
         self.total = 0.0
+        self.memberSubtotal = 0.0
+        self.memberTax = 0.0
+        self.memberTotal = 0.0
         self.regularCustomer = regularCustomer
 
     def addItem(self, item):
         self.items.append(item)
         self.itemNum += item.qnty
 
-        if self.regularCustomer:
-            self.subtotal += item.regularPrice * item.qnty
+        self.subtotal += item.regularPrice * item.qnty
 
-            if item.taxStatus == "Taxable":
-                self.tax += item.regularPrice * item.qnty * taxValue
-        else:
-            self.subtotal += item.memberPrice * item.qnty
-
-            if item.taxStatus == "Taxable":
-                self.tax += item.memberPrice * item.qnty * taxValue
+        if item.taxStatus == "Taxable":
+            self.tax += item.regularPrice * item.qnty * taxValue
 
         self.total = self.subtotal + self.tax
+
+        if not self.regularCustomer:
+            self.memberSubtotal += item.memberPrice * item.qnty
+
+            if item.taxStatus == "Taxable":
+                self.memberTax += item.memberPrice * item.qnty * taxValue
+
+            self.memberTotal = self.memberSubtotal + self.memberTax
 
     def removeItem(self, name):
         self.items = [item for item in self.items if not item.name == name]
@@ -173,30 +177,100 @@ def main():
             elif option == 4:
                 cart.viewCart()
             elif option == 5:
-                print("Your total is $" + str(cart.total) + ", what is the cash amount?")
+
+                print("Your total is $", end=" ")
+                if regularCustomer:
+                    print("{:.2f}".format(cart.total), end=" ")
+                else:
+                    print("{:.2f}".format(cart.memberTotal), end=" ")
+                print(", what is the cash amount?")
                 amount = float(input("Enter cash amount: "))
-                change = amount - cart.total
 
-                print(todayDate.isoformat())
-                print("Transaction: " + str(transactionNum))
-                cart.viewCart()
-                print("*******************************")
-                print("TOTAL NUMBER OF ITEMS SOLD: " + str(cart.itemNum))
-                print("SUB-TOTAL: $" + "{:.2f}".format(cart.subtotal))
-                print("TAX (6.5%): $" + "{:.2f}".format(cart.tax))
-                print("TOTAL: $" + "{:.2f}".format(cart.total))
-                print("CASH: $" + "{:.2f}".format(amount))
-                print("CHANGE: $" + "{:.2f}".format(change))
-                print("*******************************")
+                if regularCustomer:
+                    change = amount - cart.total
+                    print(todayDate.isoformat())
+                    print("Transaction: " + str(transactionNum))
+                    cart.viewCart()
+                    print("*******************************")
+                    print("TOTAL NUMBER OF ITEMS SOLD: " + str(cart.itemNum))
+                    print("SUB-TOTAL: $" + "{:.2f}".format(cart.subtotal))
+                    print("TAX (6.5%): $" + "{:.2f}".format(cart.tax))
+                    print("TOTAL: $" + "{:.2f}".format(cart.total))
+                    print("CASH: $" + "{:.2f}".format(amount))
+                    print("CHANGE: $" + "{:.2f}".format(change))
+                    print("*******************************")
+                else:
+                    change = amount - cart.memberTotal
+                    print(todayDate.isoformat())
+                    print("Transaction: " + str(transactionNum))
+                    cart.viewCart()
+                    print("*******************************")
+                    print("TOTAL NUMBER OF ITEMS SOLD: " + str(cart.itemNum))
+                    print("SUB-TOTAL: $" + "{:.2f}".format(cart.memberSubtotal))
+                    print("TAX (6.5%): $" + "{:.2f}".format(cart.memberTax))
+                    print("TOTAL: $" + "{:.2f}".format(cart.memberTotal))
+                    print("CASH: $" + "{:.2f}".format(amount))
+                    print("CHANGE: $" + "{:.2f}".format(change))
+                    print("*******************************")
 
-                if not regularCustomer:
-                    print("YOU SAVED: $" + "!")
+                    amntSaved = cart.total - cart.memberTotal
+                    print("YOU SAVED: $" + "{:.2f}".format(amntSaved) + "!")
 
                 for item in cart.items:
                     inventory.updateInventory(item)
 
+                # Updating inventory.txt
+                invFile = open(inventoryFile, "w")
                 for item in inventory.items:
-                    print(item)
+                    invFile.write(str(item) + "\n")
+
+                # Printing receipt
+                receiptFile = "transaction_" + "{:06d}".format(transactionNum) + "_" + "{:02d}".format(todayDate.month) + "{:02d}".format(todayDate.day) + str(todayDate.year) + ".txt"
+                # print("Receipt file: " + receiptFile)
+
+                receipt = open(receiptFile, "w")
+
+                if regularCustomer:
+                    change = amount - cart.total
+                    receipt.write(todayDate.isoformat() + "\n")
+                    receipt.write("Transaction: " + "{:06d}".format(transactionNum) + "\n")
+
+                    receipt.write("ITEM\tQUANTITY\tUNIT PRICE\tTOTAL" + "\n")
+                    for item in cart.items:
+                        receipt.write(item.name + "\t" + str(item.qnty) + "\t\t\t$")
+                        receipt.write("{:.2f}".format(item.regularPrice) + "\t\t$" + "{:.2f}".format(
+                            item.totalPriceRegular()) + "\n")
+
+                    receipt.write("*******************************" + "\n")
+                    receipt.write("TOTAL NUMBER OF ITEMS SOLD: " + str(cart.itemNum) + "\n")
+                    receipt.write("SUB-TOTAL: $" + "{:.2f}".format(cart.subtotal) + "\n")
+                    receipt.write("TAX (6.5%): $" + "{:.2f}".format(cart.tax) + "\n")
+                    receipt.write("TOTAL: $" + "{:.2f}".format(cart.total) + "\n")
+                    receipt.write("CASH: $" + "{:.2f}".format(amount) + "\n")
+                    receipt.write("CHANGE: $" + "{:.2f}".format(change) + "\n")
+                    receipt.write("*******************************")
+                else:
+                    change = amount - cart.memberTotal
+                    receipt.write(todayDate.isoformat() + "\n")
+                    receipt.write("Transaction: " + "{:06d}".format(transactionNum) + "\n")
+
+                    receipt.write("ITEM\tQUANTITY\tUNIT PRICE\tTOTAL" + "\n")
+                    for item in cart.items:
+                        receipt.write(item.name + "\t" + str(item.qnty) + "\t\t\t$")
+                        receipt.write("{:.2f}".format(item.memberPrice) + "\t\t$" + "{:.2f}".format(
+                            item.totalPriceMember()) + "\n")
+                    receipt.write("*******************************" + "\n")
+                    receipt.write("TOTAL NUMBER OF ITEMS SOLD: " + str(cart.itemNum) + "\n")
+                    receipt.write("SUB-TOTAL: $" + "{:.2f}".format(cart.memberSubtotal) + "\n")
+                    receipt.write("TAX (6.5%): $" + "{:.2f}".format(cart.memberTax) + "\n")
+                    receipt.write("TOTAL: $" + "{:.2f}".format(cart.memberTotal) + "\n")
+                    receipt.write("CASH: $" + "{:.2f}".format(amount) + "\n")
+                    receipt.write("CHANGE: $" + "{:.2f}".format(change) + "\n")
+                    receipt.write("*******************************" + "\n")
+
+                    amntSaved = cart.total - cart.memberTotal
+                    receipt.write("YOU SAVED: $" + "{:.2f}".format(amntSaved) + "!" + "\n")
+
                 break
             elif option == 6:
                 transactionNum -= 1
