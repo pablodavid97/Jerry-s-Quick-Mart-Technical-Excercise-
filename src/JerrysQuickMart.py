@@ -69,7 +69,15 @@ class Cart:
         self.memberSubtotal = 0.0
         self.memberTax = 0.0
         self.memberTotal = 0.0
-        self.regularCustomer = REGULAR_CUSTOMER # by default is assumed a regular customer
+        self._regularCustomer = REGULAR_CUSTOMER # by default is assumed a regular customer
+
+    @property
+    def regularCustomer(self):
+        return self._regularCustomer
+
+    @regularCustomer.setter
+    def regularCustomer(self, customer):
+        self._regularCustomer = customer
 
     # adds items if not added already (doesn't accept duplicates)
     def addItem(self, item):
@@ -152,24 +160,83 @@ class JerrysQuickMart:
         self.inventory = Inventory()
         self.cart = Cart()
         self.todayDate = date.today()
-        self.menuOption = 0
-        self.transactionOption = 0
+        self._customerOption = ""
+        self._menuOption = 0
+        self._transactionOption = 0
+        self._cashAmount = 0.0
+
+    @property
+    def customerOption(self):
+        return self._customerOption
+
+    @customerOption.setter
+    def customerOption(self, option):
+        if not isinstance(option, str):
+            raise TypeError("Response should be a letter")
+
+        if option != "y" and option != "n":
+            raise ValueError("Response should be either 'y' or 'n'!")
+
+        self._customerOption = option
+
+    @property
+    def menuOption(self):
+        return self._menuOption
+
+    @menuOption.setter
+    def menuOption(self, option):
+
+        if not isinstance(option, int):
+            raise TypeError("Option should be a number!")
+
+        if option != 1 and option != 2:
+            raise ValueError("Option should be either 1 or 2!")
+
+        self._menuOption = option
+
+    @property
+    def transactionOption(self):
+        return self._transactionOption
+
+    @transactionOption.setter
+    def transactionOption(self, option):
+        if not isinstance(option, int):
+            raise TypeError("Option should be a number!")
+
+        if option < 1 or option > 6:
+            raise ValueError("Option should be between 1 and 6!")
+
+        self._transactionOption = option
+
+    @property
+    def cashAmount(self):
+        return self._cashAmount
+
+    @cashAmount.setter
+    def cashAmount(self, amount):
+        if not isinstance(amount, float):
+            raise TypeError("Cash amount should be a decimal number!")
+
+        self._cashAmount = amount
 
     # starts the program
     def start(self):
         while True:
-            self.mainMenu()
-            self.menuOption = int(input("Option: "))
+            try:
+                self.mainMenu()
+                self.menuOption = int(input("Option: "))
 
-            if self.menuOption == 1:
-                # begins new transaction
-                self.newTransaction()
-            elif self.menuOption == 2:
-                # exits the program
-                self.stop()
-                break
-            else:
-                print("Invalid Option")
+                if self.menuOption == 1:
+                    # begins new transaction
+                    self.newTransaction()
+                elif self.menuOption == 2:
+                    # exits the program
+                    self.stop()
+                    break
+            except TypeError as te:
+                print(te)
+            except ValueError as ve:
+                print(ve)
 
     # contains all functionalities per each transaction
     def newTransaction(self):
@@ -198,10 +265,10 @@ class JerrysQuickMart:
                 elif self.transactionOption == 6:
                     self.cancelTransaction()
                     break
-                else:
-                    print("Invalid option")
-            except ValueError:
-                print("Invalid option")
+            except TypeError as te:
+                print(te)
+            except ValueError as ve:
+                print(ve)
 
     def mainMenu(self):
         print("------------------------------------------------------------------------------")
@@ -225,13 +292,18 @@ class JerrysQuickMart:
     def setCustomerType(self):
         print("SET CUSTOMER TYPE")
         while True:
-            response = input("Customer is a Rewards Member? (y/n): ")
-            if response == "y":
-                self.cart.regularCustomer = False
-                break
-            elif response == "n":
-                self.cart.regularCustomer = True
-                break
+            try:
+                self.customerOption = input("Customer is a Rewards Member? (y/n): ")
+                if self.customerOption == "y":
+                    self.cart.regularCustomer = False
+                    break
+                elif self.customerOption == "n":
+                    self.cart.regularCustomer = True
+                    break
+            except TypeError as te:
+                print(te)
+            except ValueError as ve:
+                print(ve)
 
     # Adds item only if available in inventory and if it hasnt been added yet to cart
     def addItemsToCart(self):
@@ -305,32 +377,32 @@ class JerrysQuickMart:
         else:
             print("{:.2f}".format(self.cart.memberTotal), end=" ")
         print(", what is the cash amount?")
-        amount = float(input("Enter cash amount: "))
+        self.cashAmount = float(input("Enter cash amount: "))
 
         print(self.todayDate.strftime("%B %d, %Y"))
         print("Transaction: " + str(self.transactionNum))
 
         # prints totals info depending if customer is member or not
         if self.cart.regularCustomer:
-            change = amount - self.cart.total
+            change = self.cashAmount - self.cart.total
             self.cart.viewCart()
             print("*************************************************")
             print("TOTAL NUMBER OF ITEMS SOLD: " + str(self.cart.itemNum))
             print("SUB-TOTAL: $" + "{:.2f}".format(self.cart.subtotal))
             print("TAX (6.5%): $" + "{:.2f}".format(self.cart.tax))
             print("TOTAL: $" + "{:.2f}".format(self.cart.total))
-            print("CASH: $" + "{:.2f}".format(amount))
+            print("CASH: $" + "{:.2f}".format(self.cashAmount))
             print("CHANGE: $" + "{:.2f}".format(change))
             print("*************************************************")
         else:
-            change = amount - self.cart.memberTotal
+            change = self.cashAmount - self.cart.memberTotal
             self.cart.viewCart()
             print("*************************************************")
             print("TOTAL NUMBER OF ITEMS SOLD: " + str(self.cart.itemNum))
             print("SUB-TOTAL: $" + "{:.2f}".format(self.cart.memberSubtotal))
             print("TAX (6.5%): $" + "{:.2f}".format(self.cart.memberTax))
             print("TOTAL: $" + "{:.2f}".format(self.cart.memberTotal))
-            print("CASH: $" + "{:.2f}".format(amount))
+            print("CASH: $" + "{:.2f}".format(self.cashAmount))
             print("CHANGE: $" + "{:.2f}".format(change))
             print("*************************************************")
 
@@ -360,7 +432,7 @@ class JerrysQuickMart:
         receipt.write(headerFormat.format(*cartHeaders) + "\n")
 
         if self.cart.regularCustomer:
-            change = amount - self.cart.total
+            change = self.cashAmount - self.cart.total
 
             for item in self.cart.items:
                 receipt.write("{:<15}".format(item.name) + "{:<15}".format(item.qnty) + "$")
@@ -372,11 +444,11 @@ class JerrysQuickMart:
             receipt.write("SUB-TOTAL: $" + "{:.2f}".format(self.cart.subtotal) + "\n")
             receipt.write("TAX (6.5%): $" + "{:.2f}".format(self.cart.tax) + "\n")
             receipt.write("TOTAL: $" + "{:.2f}".format(self.cart.total) + "\n")
-            receipt.write("CASH: $" + "{:.2f}".format(amount) + "\n")
+            receipt.write("CASH: $" + "{:.2f}".format(self.cashAmount) + "\n")
             receipt.write("CHANGE: $" + "{:.2f}".format(change) + "\n")
             receipt.write("********************************************************")
         else:
-            change = amount - self.cart.memberTotal
+            change = self.cashAmount - self.cart.memberTotal
             for item in self.cart.items:
                 receipt.write("{:<15}".format(item.name) + "{:<15}".format(item.qnty) + "$")
                 receipt.write("{:<14.2f}".format(item.memberPrice) + "$" + "{:<14.2f}".format(
@@ -386,7 +458,7 @@ class JerrysQuickMart:
             receipt.write("SUB-TOTAL: $" + "{:.2f}".format(self.cart.memberSubtotal) + "\n")
             receipt.write("TAX (6.5%): $" + "{:.2f}".format(self.cart.memberTax) + "\n")
             receipt.write("TOTAL: $" + "{:.2f}".format(self.cart.memberTotal) + "\n")
-            receipt.write("CASH: $" + "{:.2f}".format(amount) + "\n")
+            receipt.write("CASH: $" + "{:.2f}".format(self.cashAmount) + "\n")
             receipt.write("CHANGE: $" + "{:.2f}".format(change) + "\n")
             receipt.write("********************************************************" + "\n")
 
