@@ -75,24 +75,20 @@ class Cart:
     def addItem(self, item):
         try:
             self.items.index(item)
+            print("Item already in list")
         except ValueError:
             self.items.append(item)
             self.itemNum += item.qnty
 
             self.subtotal += item.regularPrice * item.qnty
+            self.memberSubtotal += item.memberPrice * item.qnty
 
             if item.isItemTaxable():
                 self.tax += item.regularPrice * item.qnty * TAX_VALUE
+                self.memberTax += item.memberPrice * item.qnty * TAX_VALUE
 
             self.total = self.subtotal + self.tax
-
-            if not self.regularCustomer:
-                self.memberSubtotal += item.memberPrice * item.qnty
-
-                if item.isItemTaxable():
-                    self.memberTax += item.memberPrice * item.qnty * TAX_VALUE
-
-                self.memberTotal = self.memberSubtotal + self.memberTax
+            self.memberTotal = self.memberSubtotal + self.memberTax
 
 
     # removes items only if they exist (name of item should be entered with uppercases)
@@ -136,15 +132,18 @@ class Cart:
 
     # prints items in cart with totals
     def viewCart(self):
-        print("ITEM\tQUANTITY\tUNIT PRICE\tTOTAL")
+        cartHeaders = ["ITEM", "QUANTITY", "UNIT PRICE", "TOTAL"]
+        headerFormat = "{:<15}" * (len(cartHeaders))
+        print(headerFormat.format(*cartHeaders))
+
         for item in self.items:
-            print(item.name + "\t" + str(item.qnty), end="\t\t\t$")
+            print("{:<15}".format(item.name) + "{:<15}".format(item.qnty), end="$")
             if self.regularCustomer:
                 # print("entered")
-                print("{:.2f}".format(item.regularPrice) + "\t\t$" + "{:.2f}".format(item.totalPriceRegular()))
+                print("{:<14.2f}".format(item.regularPrice) + "$" + "{:<14.2f}".format(item.totalPriceRegular()))
             else:
                 # print("entered")
-                print("{:.2f}".format(item.memberPrice) + "\t\t$" + "{:.2f}".format(item.totalPriceMember()))
+                print("{:<14.2f}".format(item.memberPrice) + "$" + "{:<14.2f}".format(item.totalPriceMember()))
 
 # Main object that controls the program
 class JerrysQuickMart:
@@ -243,21 +242,18 @@ class JerrysQuickMart:
 
         info = input("Add item (item name,quantity): ").split(",")
 
-        try:
-            itemFound = False
-            for item in self.inventory.items:
-                if info[0] == item.name:
-                    if int(info[1]) <= item.qnty:
-                        self.cart.addItem(
-                            Item(item.name, info[1], item.regularPrice, item.memberPrice, item.taxStatus))
-                        itemFound = True
-                        break
+        itemFound = False
+        for item in self.inventory.items:
+            if info[0] == item.name:
+                if int(info[1]) <= item.qnty:
+                    self.cart.addItem(
+                        Item(item.name, info[1], item.regularPrice, item.memberPrice, item.taxStatus))
+                    itemFound = True
+                    break
 
-            if not itemFound:
-                print("Item does not exist or quantity is greater than available.")
+        if not itemFound:
+            print("Item does not exist or quantity is greater than available.")
 
-        except ValueError:
-            print("Item already in list")
 
     # removes item only if it exists
     def removeItemsFromCart(self):
@@ -286,18 +282,18 @@ class JerrysQuickMart:
     def viewCart(self):
         self.cart.viewCart()
 
-        print("*******************************")
+        print("*************************************************")
         print("TOTAL NUMBER OF ITEMS: " + str(self.cart.itemNum))
         if self.cart.regularCustomer:
             print("SUB-TOTAL: $" + "{:.2f}".format(self.cart.subtotal))
             print("TAX (6.5%): $" + "{:.2f}".format(self.cart.tax))
             print("TOTAL: $" + "{:.2f}".format(self.cart.total))
-            print("*******************************")
+            print("*************************************************")
         else:
             print("SUB-TOTAL: $" + "{:.2f}".format(self.cart.memberSubtotal))
             print("TAX (6.5%): $" + "{:.2f}".format(self.cart.memberTax))
             print("TOTAL: $" + "{:.2f}".format(self.cart.memberTotal))
-            print("*******************************")
+            print("*************************************************")
 
     # allows user to checkout and print receipt
     def checkout(self):
@@ -311,33 +307,32 @@ class JerrysQuickMart:
         print(", what is the cash amount?")
         amount = float(input("Enter cash amount: "))
 
+        print(self.todayDate.strftime("%B %d, %Y"))
+        print("Transaction: " + str(self.transactionNum))
+
         # prints totals info depending if customer is member or not
         if self.cart.regularCustomer:
             change = amount - self.cart.total
-            print(self.todayDate.isoformat())
-            print("Transaction: " + str(self.transactionNum))
             self.cart.viewCart()
-            print("*******************************")
+            print("*************************************************")
             print("TOTAL NUMBER OF ITEMS SOLD: " + str(self.cart.itemNum))
             print("SUB-TOTAL: $" + "{:.2f}".format(self.cart.subtotal))
             print("TAX (6.5%): $" + "{:.2f}".format(self.cart.tax))
             print("TOTAL: $" + "{:.2f}".format(self.cart.total))
             print("CASH: $" + "{:.2f}".format(amount))
             print("CHANGE: $" + "{:.2f}".format(change))
-            print("*******************************")
+            print("*************************************************")
         else:
             change = amount - self.cart.memberTotal
-            print(self.todayDate.isoformat())
-            print("Transaction: " + str(self.transactionNum))
             self.cart.viewCart()
-            print("*******************************")
+            print("*************************************************")
             print("TOTAL NUMBER OF ITEMS SOLD: " + str(self.cart.itemNum))
             print("SUB-TOTAL: $" + "{:.2f}".format(self.cart.memberSubtotal))
             print("TAX (6.5%): $" + "{:.2f}".format(self.cart.memberTax))
             print("TOTAL: $" + "{:.2f}".format(self.cart.memberTotal))
             print("CASH: $" + "{:.2f}".format(amount))
             print("CHANGE: $" + "{:.2f}".format(change))
-            print("*******************************")
+            print("*************************************************")
 
             amntSaved = self.cart.total - self.cart.memberTotal
             print("YOU SAVED: $" + "{:.2f}".format(amntSaved) + "!")
@@ -358,43 +353,42 @@ class JerrysQuickMart:
         receipt = open(receiptFile, "w")
 
         # Prints receipt differently depending if customer is member or not
+        receipt.write(self.todayDate.strftime("%B %d, %Y") + "\n")
+        receipt.write("Transaction: " + "{:06d}".format(self.transactionNum) + "\n")
+        cartHeaders = ["ITEM", "QUANTITY", "UNIT PRICE", "TOTAL"]
+        headerFormat = "{:<15}" * (len(cartHeaders))
+        receipt.write(headerFormat.format(*cartHeaders) + "\n")
+
         if self.cart.regularCustomer:
             change = amount - self.cart.total
-            receipt.write(self.todayDate.isoformat() + "\n")
-            receipt.write("Transaction: " + "{:06d}".format(self.transactionNum) + "\n")
 
-            receipt.write("ITEM\tQUANTITY\tUNIT PRICE\tTOTAL" + "\n")
             for item in self.cart.items:
-                receipt.write(item.name + "\t" + str(item.qnty) + "\t\t\t$")
-                receipt.write("{:.2f}".format(item.regularPrice) + "\t\t$" + "{:.2f}".format(
+                receipt.write("{:<15}".format(item.name) + "{:<15}".format(item.qnty) + "$")
+                receipt.write("{:<14.2f}".format(item.regularPrice) + "$" + "{:<14.2f}".format(
                     item.totalPriceRegular()) + "\n")
 
-            receipt.write("*******************************" + "\n")
+            receipt.write("********************************************************" + "\n")
             receipt.write("TOTAL NUMBER OF ITEMS SOLD: " + str(self.cart.itemNum) + "\n")
             receipt.write("SUB-TOTAL: $" + "{:.2f}".format(self.cart.subtotal) + "\n")
             receipt.write("TAX (6.5%): $" + "{:.2f}".format(self.cart.tax) + "\n")
             receipt.write("TOTAL: $" + "{:.2f}".format(self.cart.total) + "\n")
             receipt.write("CASH: $" + "{:.2f}".format(amount) + "\n")
             receipt.write("CHANGE: $" + "{:.2f}".format(change) + "\n")
-            receipt.write("*******************************")
+            receipt.write("********************************************************")
         else:
             change = amount - self.cart.memberTotal
-            receipt.write(self.todayDate.isoformat() + "\n")
-            receipt.write("Transaction: " + "{:06d}".format(self.transactionNum) + "\n")
-
-            receipt.write("ITEM\tQUANTITY\tUNIT PRICE\tTOTAL" + "\n")
             for item in self.cart.items:
-                receipt.write(item.name + "\t" + str(item.qnty) + "\t\t\t$")
-                receipt.write("{:.2f}".format(item.memberPrice) + "\t\t$" + "{:.2f}".format(
+                receipt.write("{:<15}".format(item.name) + "{:<15}".format(item.qnty) + "$")
+                receipt.write("{:<14.2f}".format(item.memberPrice) + "$" + "{:<14.2f}".format(
                     item.totalPriceMember()) + "\n")
-            receipt.write("*******************************" + "\n")
+            receipt.write("********************************************************" + "\n")
             receipt.write("TOTAL NUMBER OF ITEMS SOLD: " + str(self.cart.itemNum) + "\n")
             receipt.write("SUB-TOTAL: $" + "{:.2f}".format(self.cart.memberSubtotal) + "\n")
             receipt.write("TAX (6.5%): $" + "{:.2f}".format(self.cart.memberTax) + "\n")
             receipt.write("TOTAL: $" + "{:.2f}".format(self.cart.memberTotal) + "\n")
             receipt.write("CASH: $" + "{:.2f}".format(amount) + "\n")
             receipt.write("CHANGE: $" + "{:.2f}".format(change) + "\n")
-            receipt.write("*******************************" + "\n")
+            receipt.write("********************************************************" + "\n")
 
             amntSaved = self.cart.total - self.cart.memberTotal
             receipt.write("YOU SAVED: $" + "{:.2f}".format(amntSaved) + "!" + "\n")
