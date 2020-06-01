@@ -8,10 +8,43 @@ TAX_VALUE = 0.065
 class Item:
     def __init__(self, name="", qnty=0, regularPrice=0.0, memberPrice=0.0, taxStatus="Tax-Exempt"):
         self.name = name
-        self.qnty = int(qnty)
-        self.regularPrice = float(regularPrice)
-        self.memberPrice = float(memberPrice)
+        self._qnty = qnty
+        self._regularPrice = regularPrice
+        self._memberPrice = memberPrice
         self.taxStatus = taxStatus
+
+    @property
+    def qnty(self):
+        return self._qnty
+
+    @qnty.setter
+    def qnty(self, number):
+        if not isinstance(number, int) or number < 0:
+            raise TypeError("Item quantity should be a positive integer number!")
+
+        self._qnty = number
+
+    @property
+    def regularPrice(self):
+        return self._regularPrice
+
+    @regularPrice.setter
+    def regularPrice(self, price):
+        if not isinstance(price, float) or price < 0.0:
+            raise TypeError("Price should be a positive decimal number!")
+
+        self._regularPrice = price
+
+    @property
+    def memberPrice(self):
+        return self._memberPrice
+
+    @memberPrice.setter
+    def memberPrice(self, price):
+        if not isinstance(price, float) or price < 0.0:
+            raise TypeError("Price should be a positive decimal number!")
+
+        self._memberPrice = price
 
     def isItemTaxable(self):
         if self.taxStatus == "Taxable":
@@ -48,7 +81,7 @@ class Inventory:
             itemInfo = item[1].split(", ")
             # print("regularPrice: " + str(itemInfo[1][1:]))
             # print("memberPrice: " + str(itemInfo[2][1:]))
-            self.items.append(Item(name, itemInfo[0], itemInfo[1][1:], itemInfo[2][1:], itemInfo[3].replace("\n", "")))
+            self.items.append(Item(name, int(itemInfo[0]), float(itemInfo[1][1:]), float(itemInfo[2][1:]), itemInfo[3].replace("\n", "")))
 
     # updates items quantity after checkout
     def updateInventory(self, item):
@@ -56,6 +89,8 @@ class Inventory:
             for i in self.items:
                 if item.name == i.name:
                     i.qnty = i.qnty - item.qnty
+        else:
+            raise TypeError("Item should be of type Item()!")
 
 
 class Cart:
@@ -83,7 +118,6 @@ class Cart:
     def addItem(self, item):
         try:
             self.items.index(item)
-            print("Item already in list")
         except ValueError:
             self.items.append(item)
             self.itemNum += item.qnty
@@ -98,18 +132,27 @@ class Cart:
             self.total = self.subtotal + self.tax
             self.memberTotal = self.memberSubtotal + self.memberTax
 
+        raise ValueError("Item already in list!")
 
-    # removes items only if they exist (name of item should be entered with uppercases)
+    # removes items only if they exist
     def removeItem(self, name):
+        if not isinstance(name, str):
+            raise TypeError("Item name should be a non-empty string!")
+
         n = len(self.items)
         item = Item()
+
+        itemExists = False
 
         for i in range(0, n):
             if self.items[i].name == name:
                 item = self.items.pop(i)
+                itemExists = True
                 break
 
-        if item.name != "":
+        if not itemExists:
+            raise ValueError("Item is not in cart or doesn't exist, make sure you typed the name correctly!")
+        else:
             # print("item " + str(item))
             self.itemNum -= item.qnty
             self.subtotal -= item.regularPrice * item.qnty
@@ -119,13 +162,8 @@ class Cart:
                 self.tax -= item.regularPrice * item.qnty * TAX_VALUE
                 self.memberTax -= item.memberPrice * item.qnty * TAX_VALUE
 
-
             self.total = self.subtotal + self.tax
             self.memberTotal = self.memberSubtotal + self.memberTax
-
-            return True
-        else:
-            return False
 
     # empties cart before each transaction
     def emptyCart(self):
@@ -163,7 +201,9 @@ class JerrysQuickMart:
         self._customerOption = ""
         self._menuOption = 0
         self._transactionOption = 0
+        self._addInput = []
         self._cashAmount = 0.0
+        self._rmvOption = 0
 
     @property
     def customerOption(self):
@@ -207,6 +247,37 @@ class JerrysQuickMart:
             raise ValueError("Option should be between 1 and 6!")
 
         self._transactionOption = option
+
+    @property
+    def addInput(self):
+        return self._addInput
+
+    @addInput.setter
+    def addInput(self, input):
+        if len(input) != 2:
+            raise ValueError("Invalid format! Required 2 arguments item name and quantity")
+
+        if not isinstance(input[0], str):
+            raise TypeError("Name of item should be a string!")
+
+        if not isinstance(input[1], int) or input[1] < 0:
+            raise TypeError("Quantity should be a positive integer!")
+
+        self._addInput = input
+
+    @property
+    def rmvOption(self):
+        return self._rmvOption
+
+    @rmvOption.setter
+    def rmvOption(self, option):
+        if not isinstance(option, int):
+            raise TypeError("Option should be a number!")
+
+        if option != 1 and option != 2:
+            raise ValueError("Option should be either 1 or 2!")
+
+        self._rmvOption = option
 
     @property
     def cashAmount(self):
@@ -292,18 +363,13 @@ class JerrysQuickMart:
     def setCustomerType(self):
         print("SET CUSTOMER TYPE")
         while True:
-            try:
-                self.customerOption = input("Customer is a Rewards Member? (y/n): ")
-                if self.customerOption == "y":
-                    self.cart.regularCustomer = False
-                    break
-                elif self.customerOption == "n":
-                    self.cart.regularCustomer = True
-                    break
-            except TypeError as te:
-                print(te)
-            except ValueError as ve:
-                print(ve)
+            self.customerOption = input("Customer is a Rewards Member? (y/n): ")
+            if self.customerOption == "y":
+                self.cart.regularCustomer = False
+                break
+            elif self.customerOption == "n":
+                self.cart.regularCustomer = True
+                break
 
     # Adds item only if available in inventory and if it hasnt been added yet to cart
     def addItemsToCart(self):
@@ -313,18 +379,23 @@ class JerrysQuickMart:
             print(item)
 
         info = input("Add item (item name,quantity): ").split(",")
+        if(len(info) > 1):
+            info[1] = int(info[1])
+        self.addInput = info
 
         itemFound = False
         for item in self.inventory.items:
-            if info[0] == item.name:
-                if int(info[1]) <= item.qnty:
+            if self.addInput[0] == item.name:
+                if self.addInput[1] <= item.qnty:
                     self.cart.addItem(
-                        Item(item.name, info[1], item.regularPrice, item.memberPrice, item.taxStatus))
+                        Item(item.name, self.addInput[1], item.regularPrice, item.memberPrice, item.taxStatus))
                     itemFound = True
                     break
+                else:
+                    raise ValueError("Quantity is greater than available")
 
         if not itemFound:
-            print("Item does not exist or quantity is greater than available.")
+           raise ValueError("Item not found or does not exist, make you sure item name is typed correctly!")
 
 
     # removes item only if it exists
@@ -334,21 +405,16 @@ class JerrysQuickMart:
         print("1. REMOVE ITEM")
         print("2. EMPTY CART")
 
-        try:
-            rmvOption = int(input("Option: "))
-            if rmvOption == 1:
-                print("THIS ARE YOUR CURRENT ITEMS IN CART")
-                self.cart.viewCart()
-                itemName = input("Remove item (by name): ")
+        self.rmvOption = int(input("Option: "))
+        if self.rmvOption == 1:
+            print("THIS ARE YOUR CURRENT ITEMS IN CART")
+            self.cart.viewCart()
+            itemName = input("Remove item (by name): ")
 
-                if not self.cart.removeItem(itemName):
-                    print("Item does not exist please make sure you typed name correctly.")
-            elif rmvOption == 2:
-                self.cart.emptyCart()
-            else:
-                print("Invalid option")
-        except ValueError:
-            print("Invalid option")
+            self.cart.removeItem(itemName)
+
+        elif self.rmvOption == 2:
+            self.cart.emptyCart()
 
     # prints items in cart with totals
     def viewCart(self):
