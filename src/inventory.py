@@ -1,16 +1,15 @@
 from item import Item
 
-# Program Constants
-INVENTORY_FILE = "inventory.txt"
-
 class Inventory:
     def __init__(self):
         self.items = [] # inventory is a collection of items
-        self.loadInventory() # loads items when instance is created
+
+    def __eq__(self, other):
+        return self.items == other.items
 
     # Loads inventory into object
-    def loadInventory(self):
-        file = open(INVENTORY_FILE, "r")
+    def loadInventory(self, filename):
+        file = open(filename, "r")
 
         for line in file:
             # print(line)
@@ -20,6 +19,8 @@ class Inventory:
             # print("regularPrice: " + str(itemInfo[1][1:]))
             # print("memberPrice: " + str(itemInfo[2][1:]))
             self.items.append(Item(name, int(itemInfo[0]), float(itemInfo[1][1:]), float(itemInfo[2][1:]), itemInfo[3].replace("\n", "")))
+
+        file.close()
 
     # updates items quantity after checkout
     def updateInventory(self, item):

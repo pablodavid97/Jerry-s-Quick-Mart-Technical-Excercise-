@@ -77,8 +77,11 @@ class JerrysQuickMart:
         if not isinstance(input[0], str):
             raise TypeError("Name of item should be a string!")
 
-        if not isinstance(input[1], int) or input[1] < 0:
-            raise TypeError("Quantity should be a positive integer!")
+        if not isinstance(input[1], int):
+            raise TypeError("Quantity should be an integer!")
+
+        if input[1] < 0:
+            raise ValueError("Quantity should be positive!")
 
         self._addInput = input
 
@@ -109,6 +112,8 @@ class JerrysQuickMart:
 
     # starts the program
     def start(self):
+        self.inventory.loadInventory(INVENTORY_FILE)
+
         while True:
             try:
                 self.mainMenu()
