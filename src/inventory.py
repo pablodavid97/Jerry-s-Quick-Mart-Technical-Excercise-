@@ -23,7 +23,7 @@ class Inventory:
 
     # updates items quantity after checkout
     def updateInventory(self, item):
-        if isinstance(item, item):
+        if isinstance(item, Item):
             for i in self.items:
                 if item.name == i.name:
                     i.qnty = i.qnty - item.qnty
