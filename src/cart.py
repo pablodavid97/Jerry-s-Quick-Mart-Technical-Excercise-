@@ -27,8 +27,11 @@ class Cart:
 
     # adds items if not added already (doesn't accept duplicates)
     def addItem(self, item):
+
+        itemInList = False
         try:
             self.items.index(item)
+            itemInList = True
         except ValueError:
             self.items.append(item)
             self.itemNum += item.qnty
@@ -43,7 +46,8 @@ class Cart:
             self.total = self.subtotal + self.tax
             self.memberTotal = self.memberSubtotal + self.memberTax
 
-        raise ValueError("Item already in list!")
+        if itemInList:
+            raise ValueError("Item already in list!")
 
     # removes items only if they exist
     def removeItem(self, name):

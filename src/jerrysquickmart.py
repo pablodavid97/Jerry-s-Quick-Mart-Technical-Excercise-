@@ -1,4 +1,5 @@
 from datetime import date
+from item import Item
 from cart import Cart
 from inventory import Inventory
 
@@ -204,7 +205,7 @@ class JerrysQuickMart:
             if self.addInput[0] == item.name:
                 if self.addInput[1] <= item.qnty:
                     self.cart.addItem(
-                        item(item.name, self.addInput[1], item.regularPrice, item.memberPrice, item.taxStatus))
+                        Item(item.name, self.addInput[1], item.regularPrice, item.memberPrice, item.taxStatus))
                     itemFound = True
                     break
                 else:
