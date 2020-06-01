@@ -6,9 +6,9 @@ class TestInventory(unittest.TestCase):
     def test_inventory_load(self):
         items = []
         inventory = Inventory()
-        inventory.loadInventory("../inventory.txt")
+        inventory.loadInventory("inventory.txt")
 
-        file = open("../inventory.txt", "r")
+        file = open("inventory.txt", "r")
 
         for line in file:
             # print(line)
